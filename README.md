@@ -4,7 +4,7 @@ This package provides bindings for gfal2 for the Go language. It requires gfal2 
 ## Example usage
 Have a look at the [examples/gfal2](examples/gfal2) directory to see some examples.
 
-```golang
+```go
 package main
 
 import (
