@@ -6,6 +6,7 @@ import "C"
 import (
 	"bytes"
 	"os"
+	"path"
 	"strings"
 	"time"
 	"unsafe"
@@ -28,78 +29,85 @@ type Stat interface {
 	ChangeTime() time.Time // modification time
 }
 
+// Join of C stat and file name
+// Implements gfal2.Stat and, therefore os.FileInfo
+type StatAndName struct {
+	stat C.struct_stat
+	name string
+}
+
 // Always return the empty string.
-func (stat C.struct_stat) Name() string {
-	return ""
+func (stat StatAndName) Name() string {
+	return stat.name
 }
 
 // File size.
-func (stat C.struct_stat) Size() int64 {
-	return int64(stat.st_size)
+func (stat StatAndName) Size() int64 {
+	return int64(stat.stat.st_size)
 }
 
 func mapMode(posixMode C.mode_t) os.FileMode {
 	mode := (os.FileMode(posixMode) & 0777)
-	
-	switch (posixMode & 0170000) {
-		case 0040000:
-			mode = mode | os.ModeDir
-		case 0120000:
-			mode = mode | os.ModeSymlink
-		case 0060000:
-			mode = mode | os.ModeDevice
-		case 0020000:
-			mode = mode | os.ModeCharDevice
-		case 0140000:
-			mode = mode | os.ModeSocket
+
+	switch posixMode & 0170000 {
+	case 0040000:
+		mode = mode | os.ModeDir
+	case 0120000:
+		mode = mode | os.ModeSymlink
+	case 0060000:
+		mode = mode | os.ModeDevice
+	case 0020000:
+		mode = mode | os.ModeCharDevice
+	case 0140000:
+		mode = mode | os.ModeSocket
 	}
-	
+
 	return mode
 }
 
 // File mode.
-func (stat C.struct_stat) Mode() os.FileMode {
-	return mapMode(C.mode_t(stat.st_mode))
+func (stat StatAndName) Mode() os.FileMode {
+	return mapMode(C.mode_t(stat.stat.st_mode))
 }
 
 // Modification time.
-func (stat C.struct_stat) ModTime() time.Time {
-	return time.Unix(int64(stat.st_mtim.tv_sec), int64(stat.st_mtim.tv_nsec))
+func (stat StatAndName) ModTime() time.Time {
+	return time.Unix(int64(stat.stat.st_mtim.tv_sec), int64(stat.stat.st_mtim.tv_nsec))
 }
 
 // Return true if the file is a directory.
-func (stat C.struct_stat) IsDir() bool {
+func (stat StatAndName) IsDir() bool {
 	return stat.Mode().IsDir()
 }
 
 // Internal representation.
-func (stat C.struct_stat) Sys() interface{} {
+func (stat StatAndName) Sys() interface{} {
 	return stat
 }
 
 // Map nlink.
-func (stat C.struct_stat) Nlink() int {
-	return int(stat.st_nlink)
+func (stat StatAndName) Nlink() int {
+	return int(stat.stat.st_nlink)
 }
 
 // Owner id.
-func (stat C.struct_stat) Uid() int {
-	return int(stat.st_uid)
+func (stat StatAndName) Uid() int {
+	return int(stat.stat.st_uid)
 }
 
 // Group id.
-func (stat C.struct_stat) Gid() int {
-	return int(stat.st_gid)
+func (stat StatAndName) Gid() int {
+	return int(stat.stat.st_gid)
 }
 
 // Access time.
-func (stat C.struct_stat) AccessTime() time.Time {
-	return time.Unix(int64(stat.st_atim.tv_sec), int64(stat.st_atim.tv_nsec))
+func (stat StatAndName) AccessTime() time.Time {
+	return time.Unix(int64(stat.stat.st_atim.tv_sec), int64(stat.stat.st_atim.tv_nsec))
 }
 
 // Change time.
-func (stat C.struct_stat) ChangeTime() time.Time {
-	return time.Unix(int64(stat.st_ctim.tv_sec), int64(stat.st_ctim.tv_nsec))
+func (stat StatAndName) ChangeTime() time.Time {
+	return time.Unix(int64(stat.stat.st_ctim.tv_sec), int64(stat.stat.st_ctim.tv_nsec))
 }
 
 // Get the checksum of a url.
@@ -180,11 +188,13 @@ func (context Context) Stat(url string) (Stat, GError) {
 	cUrl := (*C.char)(C.CString(url))
 	defer C.free(unsafe.Pointer(cUrl))
 
-	var stat C.struct_stat
-	ret := C.gfal2_stat(context.cContext, cUrl, &stat, &err)
+	var stat StatAndName
+	ret := C.gfal2_stat(context.cContext, cUrl, &stat.stat, &err)
 	if ret < 0 {
 		return nil, errorCtoGo(err)
 	}
+
+	stat.name = path.Base(url)
 
 	return stat, nil
 }
@@ -196,11 +206,13 @@ func (context Context) Lstat(url string) (Stat, GError) {
 	cUrl := (*C.char)(C.CString(url))
 	defer C.free(unsafe.Pointer(cUrl))
 
-	var stat C.struct_stat
-	ret := C.gfal2_lstat(context.cContext, cUrl, &stat, &err)
+	var stat StatAndName
+	ret := C.gfal2_lstat(context.cContext, cUrl, &stat.stat, &err)
 	if ret < 0 {
 		return nil, errorCtoGo(err)
 	}
+	
+	stat.name = path.Base(url)
 
 	return stat, nil
 }
