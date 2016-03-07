@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) CERN 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gfal2
 
 // #cgo pkg-config: gfal2 gfal_transfer
@@ -387,7 +403,7 @@ func monitorCallbackWrapper(h C.gfalt_transfer_status_t, src *C.char, dst *C.cha
 }
 
 // Add a function to be called with the performance markers data.
-func (params TransferParameters) AddMonitorCallback(listener MonitorListener) GError {
+func (params TransferParameters) AddMonitorCallback(listener *MonitorListener) GError {
 	var err *C.GError
 
 	ret := C.gfalt_add_monitor_callback(params.cParams, C.gfalt_monitor_func(C.monitorCallback), C.gpointer(unsafe.Pointer(&listener)), nil, &err)
@@ -416,7 +432,7 @@ func eventCallbackWrapper(cEvent C.gfalt_event_t, user_data C.gpointer) {
 }
 
 // Add a function to be called when there are events triggered by the plugins.
-func (params TransferParameters) AddEventCallback(listener EventListener) GError {
+func (params TransferParameters) AddEventCallback(listener *EventListener) GError {
 	var err *C.GError
 
 	ret := C.gfalt_add_event_callback(params.cParams, C.gfalt_event_func(C.eventCallback), C.gpointer(unsafe.Pointer(&listener)), nil, &err)
