@@ -19,20 +19,23 @@ package gfal2
 // #cgo pkg-config: gfal2 gfal_transfer
 // #include <gfal_api.h>
 import "C"
+import (
+	"syscall"
+)
 
 // Contains error information coming from gfal2.
 type GError interface {
 	// Domain of the error. For instance, the plugin that triggered it.
 	Domain() string
 	// Error code. Values can be the same as those for errno.
-	Code() int32
+	Code() syscall.Errno
 	// Error description.
 	Error() string
 }
 
 type GErrorImpl struct {
 	domain  string
-	code    int32
+	code    syscall.Errno
 	message string
 }
 
@@ -42,7 +45,7 @@ func (e GErrorImpl) Domain() string {
 }
 
 // Get the error code (see errno).
-func (e GErrorImpl) Code() int32 {
+func (e GErrorImpl) Code() syscall.Errno {
 	return e.code
 }
 
@@ -55,7 +58,7 @@ func (e GErrorImpl) Error() string {
 // Frees the C error .
 func errorCtoGo(e *C.GError) GErrorImpl {
 	var err GErrorImpl
-	err.code = int32(e.code)
+	err.code = syscall.Errno(e.code)
 	err.message = C.GoString((*C.char)(e.message))
 	C.g_clear_error(&e)
 	return err
