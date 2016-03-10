@@ -43,7 +43,7 @@ func (context Context) SetOptString(group string, key string, value string) GErr
 }
 
 // Get the value of group:key as a string.
-func (context Context) GetOptString(group string, key string) (string, GError) {
+func (context Context) GetOptString(group string, key string) string {
 	var err *C.GError
 
 	cGroup := (*C.gchar)(C.CString(group))
@@ -53,12 +53,12 @@ func (context Context) GetOptString(group string, key string) (string, GError) {
 
 	ret := C.gfal2_get_opt_string(context.cContext, cGroup, cKey, &err)
 	if ret == nil {
-		return "", errorCtoGo(err)
+		return ""
 	}
 
 	value := C.GoString((*C.char)(ret))
 	C.g_free(C.gpointer(ret))
-	return value, nil
+	return value
 }
 
 // Set an integer parameter under group:key.
@@ -79,7 +79,7 @@ func (context Context) SetOptInteger(group string, key string, value int) GError
 }
 
 // Get the value of group:key as an integer.
-func (context Context) GetOptInteger(group string, key string) (int, GError) {
+func (context Context) GetOptInteger(group string, key string) int {
 	var err *C.GError
 
 	cGroup := (*C.gchar)(C.CString(group))
@@ -89,10 +89,10 @@ func (context Context) GetOptInteger(group string, key string) (int, GError) {
 
 	ret := C.gfal2_get_opt_integer(context.cContext, cGroup, cKey, &err)
 	if err != nil {
-		return 0, errorCtoGo(err)
+		return 0
 	}
 
-	return int(ret), nil
+	return int(ret)
 }
 
 // Set a boolean parameter under group:key.
@@ -118,7 +118,7 @@ func (context Context) SetOptBoolean(group string, key string, value bool) GErro
 }
 
 // Get the value of group:key as a boolean.
-func (context Context) GetOptBoolean(group string, key string) (bool, GError) {
+func (context Context) GetOptBoolean(group string, key string) bool {
 	var err *C.GError
 
 	cGroup := (*C.gchar)(C.CString(group))
@@ -128,10 +128,10 @@ func (context Context) GetOptBoolean(group string, key string) (bool, GError) {
 
 	ret := C.gfal2_get_opt_boolean(context.cContext, cGroup, cKey, &err)
 	if err != nil {
-		return false, errorCtoGo(err)
+		return false
 	}
 
-	return ret != 0, nil
+	return ret != 0
 }
 
 // Set a string list parameter under group:key.
@@ -160,7 +160,7 @@ func (context Context) SetOptStringList(group string, key string, values []strin
 }
 
 // Get the value of group:key as a string list.
-func (context Context) GetOptStringList(group string, key string) ([]string, GError) {
+func (context Context) GetOptStringList(group string, key string) []string {
 	var err *C.GError
 
 	cGroup := (*C.gchar)(C.CString(group))
@@ -171,7 +171,7 @@ func (context Context) GetOptStringList(group string, key string) ([]string, GEr
 	var nItems C.gsize
 	ret := C.gfal2_get_opt_string_list(context.cContext, cGroup, cKey, &nItems, &err)
 	if ret == nil {
-		return nil, errorCtoGo(err)
+		return nil
 	}
 
 	slice := (*[1 << 30]*C.gchar)(unsafe.Pointer(ret))[:nItems:nItems]
@@ -183,7 +183,7 @@ func (context Context) GetOptStringList(group string, key string) ([]string, GEr
 
 	C.g_strfreev(ret)
 
-	return array, nil
+	return array
 }
 
 // Load configuration from a file.
