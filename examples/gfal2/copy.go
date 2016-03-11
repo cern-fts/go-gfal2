@@ -35,7 +35,7 @@ func runCopy(context *gfal2.Context, cmd *Command, args []string) int {
 		return -1
 	}
 
-	copyHandler, err := context.NewCopy()
+	copyHandler, err := context.NewTransfer()
 	if err != nil {
 		Log("MAIN", gfal2.LogLevelCritical, "Failed to create the copy handler")
 		return -1
