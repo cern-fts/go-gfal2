@@ -63,7 +63,7 @@ type MonitorListener interface {
 }
 
 // Struct that holds the data required to run the transfers.
-type Transfer struct {
+type TransferHandler struct {
 	cParams  C.gfalt_params_t
 	cContext C.gfal2_context_t
 
@@ -73,8 +73,8 @@ type Transfer struct {
 }
 
 // Create a new TransferParameters struct.
-func (context Context) NewTransfer() (*Transfer, GError) {
-	var params Transfer
+func (context Context) NewTransferHandler() (*TransferHandler, GError) {
+	var params TransferHandler
 	var err *C.GError
 
 	params.cContext = context.cContext
@@ -87,8 +87,8 @@ func (context Context) NewTransfer() (*Transfer, GError) {
 }
 
 // Copy the TransferParameters struct.
-func (params Transfer) Copy() (*Transfer, GError) {
-	var paramsCopy Transfer
+func (params TransferHandler) Copy() (*TransferHandler, GError) {
+	var paramsCopy TransferHandler
 	var err *C.GError
 
 	paramsCopy.cContext = params.cContext
@@ -101,7 +101,7 @@ func (params Transfer) Copy() (*Transfer, GError) {
 }
 
 // Destroy the TransferParameters.
-func (params Transfer) Close() GError {
+func (params TransferHandler) Close() GError {
 	var err *C.GError
 
 	C.gfalt_params_handle_delete(params.cParams, &err)
@@ -112,7 +112,7 @@ func (params Transfer) Close() GError {
 }
 
 // Define the maximum time acceptable for the file tranfer.
-func (params Transfer) SetTimeout(timeout int) GError {
+func (params TransferHandler) SetTimeout(timeout int) GError {
 	var err *C.GError
 
 	ret := C.gfalt_set_timeout(params.cParams, C.guint64(timeout), &err)
@@ -123,7 +123,7 @@ func (params Transfer) SetTimeout(timeout int) GError {
 }
 
 // Get the maximum time acceptable for the file transfer.
-func (params Transfer) GetTimeout() int {
+func (params TransferHandler) GetTimeout() int {
 	var err *C.GError
 
 	ret := C.gfalt_get_timeout(params.cParams, &err)
@@ -135,7 +135,7 @@ func (params Transfer) GetTimeout() int {
 
 // Define the maximum number of parallels connexion to use for the file tranfer.
 // Note that not all protocols implement this.
-func (params Transfer) SetNoStreams(nostreams int) GError {
+func (params TransferHandler) SetNoStreams(nostreams int) GError {
 	var err *C.GError
 
 	ret := C.gfalt_set_nbstreams(params.cParams, C.guint(nostreams), &err)
@@ -146,7 +146,7 @@ func (params Transfer) SetNoStreams(nostreams int) GError {
 }
 
 // Get the number of streams to be used for the transfer.
-func (params Transfer) GetNoStreams() int {
+func (params TransferHandler) GetNoStreams() int {
 	var err *C.GError
 
 	ret := C.gfalt_get_nbstreams(params.cParams, &err)
@@ -158,7 +158,7 @@ func (params Transfer) GetNoStreams() int {
 
 // Set the TCP buffer size.
 // Note that not all protocols implement this.
-func (params Transfer) SetTcpBuffersize(size int) GError {
+func (params TransferHandler) SetTcpBuffersize(size int) GError {
 	var err *C.GError
 
 	ret := C.gfalt_set_tcp_buffer_size(params.cParams, C.guint64(size), &err)
@@ -169,7 +169,7 @@ func (params Transfer) SetTcpBuffersize(size int) GError {
 }
 
 // Get the TCP buffer size.
-func (params Transfer) GetTcpBuffersize() int {
+func (params TransferHandler) GetTcpBuffersize() int {
 	var err *C.GError
 
 	ret := C.gfalt_get_tcp_buffer_size(params.cParams, &err)
@@ -181,7 +181,7 @@ func (params Transfer) GetTcpBuffersize() int {
 
 // Set source space token.
 // Note that not all protocols implement this.
-func (params Transfer) SetSourceSpacetoken(token string) GError {
+func (params TransferHandler) SetSourceSpacetoken(token string) GError {
 	var err *C.GError
 
 	cToken := (*C.char)(C.CString(token))
@@ -195,7 +195,7 @@ func (params Transfer) SetSourceSpacetoken(token string) GError {
 }
 
 // Get the source space token.
-func (params Transfer) GetSourceSpaceToken() string {
+func (params TransferHandler) GetSourceSpaceToken() string {
 	var err *C.GError
 
 	ret := C.gfalt_get_src_spacetoken(params.cParams, &err)
@@ -207,7 +207,7 @@ func (params Transfer) GetSourceSpaceToken() string {
 
 // Set the destination space token.
 // Note that not all protocols implement this.
-func (params Transfer) SetDestinationSpaceToken(token string) GError {
+func (params TransferHandler) SetDestinationSpaceToken(token string) GError {
 	var err *C.GError
 
 	cToken := (*C.char)(C.CString(token))
@@ -221,7 +221,7 @@ func (params Transfer) SetDestinationSpaceToken(token string) GError {
 }
 
 // Get the destination space token.
-func (params Transfer) GetDestinationSpaceToken() string {
+func (params TransferHandler) GetDestinationSpaceToken() string {
 	var err *C.GError
 
 	ret := C.gfalt_get_dst_spacetoken(params.cParams, &err)
@@ -234,7 +234,7 @@ func (params Transfer) GetDestinationSpaceToken() string {
 // If true, if the destination file exists, it will be overwritten.
 // If false, if the destination file exists, the transfer will fail.
 // If the destination file does not exist, there is, obviously, no difference.
-func (params Transfer) SetOverwrite(overwrite bool) GError {
+func (params TransferHandler) SetOverwrite(overwrite bool) GError {
 	var err *C.GError
 
 	var cOverwrite C.gboolean = 0
@@ -250,7 +250,7 @@ func (params Transfer) SetOverwrite(overwrite bool) GError {
 }
 
 // Return the value of the Overwrite flag.
-func (params Transfer) GetOverwrite() bool {
+func (params TransferHandler) GetOverwrite() bool {
 	var err *C.GError
 
 	ret := C.gfalt_get_replace_existing_file(params.cParams, &err)
@@ -262,7 +262,7 @@ func (params Transfer) GetOverwrite() bool {
 
 // If true, only the transfer will be done. Any preparatory work will be skipped.
 // For instance, parent directory creation, checking the destination exists, checksum/size validation...
-func (params Transfer) SetStrictCopy(strict bool) GError {
+func (params TransferHandler) SetStrictCopy(strict bool) GError {
 	var err *C.GError
 
 	var cStrict C.gboolean = 0
@@ -278,7 +278,7 @@ func (params Transfer) SetStrictCopy(strict bool) GError {
 }
 
 // Return the value of the StrictCopy flag.
-func (params Transfer) GetStrictCopy() bool {
+func (params TransferHandler) GetStrictCopy() bool {
 	var err *C.GError
 
 	ret := C.gfalt_get_strict_copy_mode(params.cParams, &err)
@@ -291,7 +291,7 @@ func (params Transfer) GetStrictCopy() bool {
 // If true, a checksum validation will be done after the transfer.
 // If SetChecksum is used, then the source will be validated against that
 // value before the transfer takes places.
-func (params Transfer) EnableChecksum(enable bool) GError {
+func (params TransferHandler) EnableChecksum(enable bool) GError {
 	var err *C.GError
 
 	var cEnable C.gboolean = 0
@@ -307,7 +307,7 @@ func (params Transfer) EnableChecksum(enable bool) GError {
 }
 
 // Return the value of the Checksum flag.
-func (params Transfer) IsChecksumEnabled() (bool, GError) {
+func (params TransferHandler) IsChecksumEnabled() (bool, GError) {
 	var err *C.GError
 
 	ret := C.gfalt_get_checksum_check(params.cParams, &err)
@@ -319,7 +319,7 @@ func (params Transfer) IsChecksumEnabled() (bool, GError) {
 
 // Set a custom checksum type and value. If chkvalue is *not* empty, the source file will
 // be validated prior to the transfer.
-func (params Transfer) SetChecksum(chktype string, chkvalue string) GError {
+func (params TransferHandler) SetChecksum(chktype string, chkvalue string) GError {
 	var err *C.GError
 
 	cType := (*C.gchar)(C.CString(chktype))
@@ -335,7 +335,7 @@ func (params Transfer) SetChecksum(chktype string, chkvalue string) GError {
 }
 
 // Get the configured checksum type and value.
-func (params Transfer) GetChecksum() (string, string) {
+func (params TransferHandler) GetChecksum() (string, string) {
 	var err *C.GError
 
 	typeBuffer := make([]byte, 256)
@@ -356,7 +356,7 @@ func (params Transfer) GetChecksum() (string, string) {
 
 // If true, the destination parent directory will be created if it does not exist.
 // If false, the transfer will fail if the destination parent directory does not exist.
-func (params Transfer) SetCreateParentDir(create bool) GError {
+func (params TransferHandler) SetCreateParentDir(create bool) GError {
 	var err *C.GError
 
 	var cCreate C.gboolean = 0
@@ -372,7 +372,7 @@ func (params Transfer) SetCreateParentDir(create bool) GError {
 }
 
 // Get the value of the CreateParentDir flag.
-func (params Transfer) GetCreateParentDir() bool {
+func (params TransferHandler) GetCreateParentDir() bool {
 	var err *C.GError
 
 	ret := C.gfalt_get_create_parent_dir(params.cParams, &err)
@@ -403,7 +403,7 @@ func monitorCallbackWrapper(h C.gfalt_transfer_status_t, src *C.char, dst *C.cha
 }
 
 // Add a function to be called with the performance markers data.
-func (params Transfer) AddMonitorCallback(listener *MonitorListener) GError {
+func (params TransferHandler) AddMonitorCallback(listener *MonitorListener) GError {
 	var err *C.GError
 
 	ret := C.gfalt_add_monitor_callback(params.cParams, C.gfalt_monitor_func(C.monitorCallback), C.gpointer(unsafe.Pointer(&listener)), nil, &err)
@@ -432,7 +432,7 @@ func eventCallbackWrapper(cEvent C.gfalt_event_t, user_data C.gpointer) {
 }
 
 // Add a function to be called when there are events triggered by the plugins.
-func (params Transfer) AddEventCallback(listener *EventListener) GError {
+func (params TransferHandler) AddEventCallback(listener *EventListener) GError {
 	var err *C.GError
 
 	ret := C.gfalt_add_event_callback(params.cParams, C.gfalt_event_func(C.eventCallback), C.gpointer(unsafe.Pointer(&listener)), nil, &err)
@@ -448,7 +448,7 @@ func (params Transfer) AddEventCallback(listener *EventListener) GError {
 // Perform the copy from source into destination.
 // If the protocol supports it, it will be a third party copy.
 // If the protocol does not support third party copies, then the data will be streamed via the local node.
-func (params Transfer) CopyFile(source string, destination string) GError {
+func (params TransferHandler) CopyFile(source string, destination string) GError {
 	var err *C.GError
 
 	cSource := C.CString(source)
