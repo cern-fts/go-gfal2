@@ -19,13 +19,17 @@ var checksumFlag = cmdCopy.Flag.Bool("K", false, "enable checksum validation")
 var checksumType = cmdCopy.Flag.String("checksum-algo", "adler32", "use the checksum algorithm to validate the copy")
 var checksumValue = cmdCopy.Flag.String("checksum-value", "", "user defined checksum")
 
-type CopyListener struct{}
+type CopyListener struct {
+	// Just to trigger "cgo argument has Go pointer to Go pointer"
+	// Underlying implementation should allow this
+	p *string
+}
 
-func (_ CopyListener) NotifyEvent(event gfal2.Event) {
+func (_ *CopyListener) NotifyEvent(event gfal2.Event) {
 	Log("MAIN", gfal2.LogLevelInfo, "EVENT %s %s %s", event.Domain, event.Stage, event.Description)
 }
 
-func (_ CopyListener) NotifyPerformanceMarker(marker gfal2.Marker) {
+func (_ *CopyListener) NotifyPerformanceMarker(marker gfal2.Marker) {
 	Log("MAIN", gfal2.LogLevelInfo, "MARKER %ds %.2f KB/s %d bytes", marker.ElapsedTime, float32(marker.AvgThroughput)/1024.0, marker.BytesTransferred)
 }
 
@@ -35,7 +39,7 @@ func runCopy(context *gfal2.Context, cmd *Command, args []string) int {
 		return -1
 	}
 
-	copyHandler, err := context.NewTransfer()
+	copyHandler, err := context.NewTransferHandler()
 	if err != nil {
 		Log("MAIN", gfal2.LogLevelCritical, "Failed to create the copy handler")
 		return -1
@@ -49,8 +53,8 @@ func runCopy(context *gfal2.Context, cmd *Command, args []string) int {
 	}
 
 	var listener CopyListener
-	copyHandler.AddEventCallback(listener)
-	copyHandler.AddMonitorCallback(listener)
+	copyHandler.AddEventCallback(&listener)
+	copyHandler.AddMonitorCallback(&listener)
 
 	err = copyHandler.CopyFile(args[0], args[1])
 	if err != nil {

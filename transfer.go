@@ -24,7 +24,6 @@ package gfal2
 import "C"
 import (
 	"bytes"
-	"container/list"
 	"unsafe"
 )
 
@@ -66,11 +65,11 @@ type MonitorListener interface {
 type TransferHandler struct {
 	cParams  C.gfalt_params_t
 	cContext C.gfal2_context_t
-
-	// Keep references to the listener to avoid them being freed
-	monitorListeners list.List
-	eventListeners list.List
 }
+
+// Global references to the listeners
+var monitorListeners []MonitorListener
+var eventListeners []EventListener
 
 // Create a new TransferParameters struct.
 func (context Context) NewTransferHandler() (*TransferHandler, GError) {
@@ -387,7 +386,7 @@ func (params TransferHandler) GetCreateParentDir() bool {
 func monitorCallbackWrapper(h C.gfalt_transfer_status_t, src *C.char, dst *C.char, user_data C.gpointer) {
 	var err *C.GError
 
-	listener := *(*MonitorListener)(user_data)
+	listener := uintptr(user_data)
 
 	var marker Marker
 	marker.AvgThroughput = uint64(C.gfalt_copy_get_average_baudrate(h, &err))
@@ -399,19 +398,25 @@ func monitorCallbackWrapper(h C.gfalt_transfer_status_t, src *C.char, dst *C.cha
 	marker.ElapsedTime = uint64(C.gfalt_copy_get_elapsed_time(h, &err))
 	C.g_clear_error(&err)
 
-	listener.NotifyPerformanceMarker(marker)
+	monitorListeners[listener].NotifyPerformanceMarker(marker)
 }
 
 // Add a function to be called with the performance markers data.
-func (params TransferHandler) AddMonitorCallback(listener *MonitorListener) GError {
+func (params TransferHandler) AddMonitorCallback(listener MonitorListener) GError {
 	var err *C.GError
 
-	ret := C.gfalt_add_monitor_callback(params.cParams, C.gfalt_monitor_func(C.monitorCallback), C.gpointer(unsafe.Pointer(&listener)), nil, &err)
+	monitorListeners = append(monitorListeners, listener)
+
+	ret := C.gfalt_add_monitor_callback(
+		params.cParams,
+		C.gfalt_monitor_func(C.monitorCallback),
+		uintptr(len(monitorListeners) - 1),
+		nil,
+		&err,
+	)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
-	
-	params.monitorListeners.PushBack(listener)
 
 	return nil
 }
@@ -419,7 +424,7 @@ func (params TransferHandler) AddMonitorCallback(listener *MonitorListener) GErr
 // Wrapper for callbacks
 //export eventCallbackWrapper
 func eventCallbackWrapper(cEvent C.gfalt_event_t, user_data C.gpointer) {
-	listener := *(*EventListener)(user_data)
+	listener := uintptr(user_data)
 
 	var event Event
 	event.Description = C.GoString(cEvent.description)
@@ -428,19 +433,25 @@ func eventCallbackWrapper(cEvent C.gfalt_event_t, user_data C.gpointer) {
 	event.Stage = C.GoString((*C.char)(C.g_quark_to_string(cEvent.stage)))
 	event.Timestamp = uint64(cEvent.timestamp)
 
-	listener.NotifyEvent(event)
+	eventListeners[listener].NotifyEvent(event)
 }
 
 // Add a function to be called when there are events triggered by the plugins.
-func (params TransferHandler) AddEventCallback(listener *EventListener) GError {
+func (params TransferHandler) AddEventCallback(listener EventListener) GError {
 	var err *C.GError
 
-	ret := C.gfalt_add_event_callback(params.cParams, C.gfalt_event_func(C.eventCallback), C.gpointer(unsafe.Pointer(&listener)), nil, &err)
+	eventListeners = append(eventListeners, listener)
+
+	ret := C.gfalt_add_event_callback(
+		params.cParams,
+		C.gfalt_event_func(C.eventCallback),
+		uintptr(len(eventListeners) - 1),
+		nil,
+		&err,
+	)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
-	
-	params.eventListeners.PushBack(listener)
 
 	return nil
 }
