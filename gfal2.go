@@ -30,16 +30,17 @@ import (
 	"unsafe"
 )
 
+// Context is a handle to a gfal2 instantiation.
 type Context struct {
 	cContext C.gfal2_context_t
 }
 
-// Return the underyling gfal2 version.
+// Version returns the underlying gfal2 version.
 func Version() string {
 	return C.GoString(C.gfal2_version())
 }
 
-// Create a new gfal2 context.
+// NewContext creates a new gfal2 context.
 func NewContext() (*Context, GError) {
 	var context Context
 	var err *C.GError
@@ -52,13 +53,13 @@ func NewContext() (*Context, GError) {
 	return &context, nil
 }
 
-// Destroy the gfal2 context.
+// Close destroys the gfal2 context.
 func (context Context) Close() {
 	C.gfal2_context_free(context.cContext)
 	context.cContext = nil
 }
 
-// Get a list with the names and version of the loaded plugins.
+// GetPluginNames returns a list with the names and version of the loaded plugins.
 func (context Context) GetPluginNames() ([]string, GError) {
 	cArray := C.gfal2_get_plugin_names(context.cContext)
 	cLength := C.helper_strvlengh(cArray)

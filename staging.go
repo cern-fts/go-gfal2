@@ -24,24 +24,24 @@ import (
 	"unsafe"
 )
 
-// Perform a bring online operation. Return the token, or nil and an error.
+// BringOnline performs a bring online operation. Return the token, or nil and an error.
 // If async is false, this method will block until the file is brought online.
 // If async if true, this method return immediately, and the caller should use BringOnlinePoll to check for the termination.
 func (context Context) BringOnline(url string, pintime int, timeout int, async bool) (string, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
 	buffer := make([]byte, 256)
 	bufferPtr := (*C.char)(unsafe.Pointer(&buffer[0]))
 
-	var cAsync C.int = 0
+	var cAsync C.int
 	if async {
 		cAsync = 1
 	}
 
-	ret := C.gfal2_bring_online(context.cContext, cUrl, C.time_t(pintime), C.time_t(timeout), bufferPtr, C.size_t(len(buffer)), cAsync, &err)
+	ret := C.gfal2_bring_online(context.cContext, cURL, C.time_t(pintime), C.time_t(timeout), bufferPtr, C.size_t(len(buffer)), cAsync, &err)
 	if ret < 0 {
 		return "", errorCtoGo(err)
 	}
@@ -50,17 +50,17 @@ func (context Context) BringOnline(url string, pintime int, timeout int, async b
 	return string(buffer[:n]), nil
 }
 
-// Check the status of a bring online operation.
+// BringOnlinePoll checks the status of a bring online operation.
 // The token was returned by BringOnline.
 func (context Context) BringOnlinePoll(url string, token string) GError {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 	cToken := (*C.char)(C.CString(token))
 	defer C.free(unsafe.Pointer(cToken))
 
-	ret := C.gfal2_bring_online_poll(context.cContext, cUrl, cToken, &err)
+	ret := C.gfal2_bring_online_poll(context.cContext, cURL, cToken, &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
@@ -68,17 +68,17 @@ func (context Context) BringOnlinePoll(url string, token string) GError {
 	return nil
 }
 
-// Release a file, so the storage can remove it from disk.
+// ReleaseFile releases a file, so the storage can remove it from disk.
 // The token was returned by BringOnline.
 func (context Context) ReleaseFile(url string, token string) GError {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 	cToken := (*C.char)(C.CString(token))
 	defer C.free(unsafe.Pointer(cToken))
 
-	ret := C.gfal2_release_file(context.cContext, cUrl, cToken, &err)
+	ret := C.gfal2_release_file(context.cContext, cURL, cToken, &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
@@ -86,7 +86,7 @@ func (context Context) ReleaseFile(url string, token string) GError {
 	return nil
 }
 
-// Bring online a list of files.
+// BringOnlineList request the staging of a list of files.
 // See BringOnline for the meaning of the parameters.
 // Return the token *and* a list of errors, one per url. The error will be nil if the file is online,
 // or EAGAIN is queued. Other error codes are definite errors.
@@ -99,7 +99,7 @@ func (context Context) BringOnlineList(urls []string, pintime int, timeout int, 
 	buffer := make([]byte, 256)
 	bufferPtr := (*C.char)(unsafe.Pointer(&buffer[0]))
 
-	var cAsync C.int = 0
+	var cAsync C.int
 	if async {
 		cAsync = 1
 	}
@@ -123,7 +123,7 @@ func (context Context) BringOnlineList(urls []string, pintime int, timeout int, 
 	return token, errors
 }
 
-// Poll a list of files. See BringOnlinePoll.
+// BringOnlinePollList polls a list of files. See BringOnlinePoll.
 func (context Context) BringOnlinePollList(urls []string, token string) []GError {
 	nItems := len(urls)
 
@@ -148,7 +148,7 @@ func (context Context) BringOnlinePollList(urls []string, token string) []GError
 	return errors
 }
 
-// Release a list of files.
+// ReleaseFileList releases a list of files.
 func (context Context) ReleaseFileList(urls []string, token string) []GError {
 	nItems := len(urls)
 
@@ -173,7 +173,7 @@ func (context Context) ReleaseFileList(urls []string, token string) []GError {
 	return errors
 }
 
-// Abort a set of files that are queued for staging.
+// AbortFiles aborts a set of files that are queued for staging.
 func (context Context) AbortFiles(urls []string, token string) []GError {
 	nItems := len(urls)
 

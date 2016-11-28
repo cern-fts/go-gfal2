@@ -28,7 +28,7 @@ import (
 	"unsafe"
 )
 
-// Superset of os.FileInfo
+// Stat is a superset of os.FileInfo
 type Stat interface {
 	Name() string       // base name of the file
 	Size() int64        // length in bytes for regular files; system-dependent for others
@@ -45,19 +45,19 @@ type Stat interface {
 	ChangeTime() time.Time // modification time
 }
 
-// Join of C stat and file name
+// StatAndName is a join of C stat and file name
 // Implements gfal2.Stat and, therefore os.FileInfo
 type StatAndName struct {
 	stat C.struct_stat
 	name string
 }
 
-// Always return the empty string.
+// Name returns the file name.
 func (stat StatAndName) Name() string {
 	return stat.name
 }
 
-// File size.
+// Size returns the file size.
 func (stat StatAndName) Size() int64 {
 	return int64(stat.stat.st_size)
 }
@@ -81,66 +81,66 @@ func mapMode(posixMode C.mode_t) os.FileMode {
 	return mode
 }
 
-// File mode.
+// Mode returns the permission bits.
 func (stat StatAndName) Mode() os.FileMode {
 	return mapMode(C.mode_t(stat.stat.st_mode))
 }
 
-// Modification time.
+// ModTime returns the modification time of the file.
 func (stat StatAndName) ModTime() time.Time {
 	return time.Unix(int64(stat.stat.st_mtim.tv_sec), int64(stat.stat.st_mtim.tv_nsec))
 }
 
-// Return true if the file is a directory.
+// IsDir returns true if the file is a directory.
 func (stat StatAndName) IsDir() bool {
 	return stat.Mode().IsDir()
 }
 
-// Internal representation.
+// Sys returns the internal representation.
 func (stat StatAndName) Sys() interface{} {
 	return stat
 }
 
-// Map nlink.
+// Nlink returns the number of links that point to this file.
 func (stat StatAndName) Nlink() int {
 	return int(stat.stat.st_nlink)
 }
 
-// Owner id.
+// Uid returns the user id that owns the file.
 func (stat StatAndName) Uid() int {
 	return int(stat.stat.st_uid)
 }
 
-// Group id.
+// Gid returns the group id.
 func (stat StatAndName) Gid() int {
 	return int(stat.stat.st_gid)
 }
 
-// Access time.
+// AccessTime returns the access time of the file.
 func (stat StatAndName) AccessTime() time.Time {
 	return time.Unix(int64(stat.stat.st_atim.tv_sec), int64(stat.stat.st_atim.tv_nsec))
 }
 
-// Change time.
+// ChangeTime returns the modification time of the file.
 func (stat StatAndName) ChangeTime() time.Time {
 	return time.Unix(int64(stat.stat.st_ctim.tv_sec), int64(stat.stat.st_ctim.tv_nsec))
 }
 
-// Get the checksum of a url.
+// Checksum returns the checksum of a url.
 // chktype is the algorithm to use (md5, adler32, sha1...). Support depends on the underlying protocol and storage.
 // The checksum can be calculated with an offset and length. If both are 0, then the checksum is for the whole file.
 func (context Context) Checksum(url string, chktype string, offset uint64, length uint64) (string, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 	cType := (*C.char)(C.CString(chktype))
 	defer C.free(unsafe.Pointer(cType))
 
 	buffer := make([]byte, 256)
 	bufferPtr := (*C.char)(unsafe.Pointer(&buffer[0]))
 
-	ret := C.gfal2_checksum(context.cContext, cUrl, cType, C.off_t(offset), C.size_t(length), bufferPtr, C.size_t(len(buffer)), &err)
+	ret := C.gfal2_checksum(context.cContext, cURL, cType, C.off_t(offset), C.size_t(length), bufferPtr, C.size_t(len(buffer)), &err)
 	if ret < 0 {
 		return "", errorCtoGo(err)
 	}
@@ -149,15 +149,15 @@ func (context Context) Checksum(url string, chktype string, offset uint64, lengt
 	return string(buffer[:n]), nil
 }
 
-// Check if the user has permission for the given file.
+// Access checks if the user has permission for the given file.
 // For mode, check the values of F_OK, R_OK, W_OK and X_OK.
 func (context Context) Access(url string, mode int) GError {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
-	ret := C.gfal2_access(context.cContext, cUrl, C.int(mode), &err)
+	ret := C.gfal2_access(context.cContext, cURL, C.int(mode), &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
@@ -165,14 +165,14 @@ func (context Context) Access(url string, mode int) GError {
 	return nil
 }
 
-// Change the mode of a file.
+// Chmod changes  the mode of a file.
 func (context Context) Chmod(url string, mode os.FileMode) GError {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
-	ret := C.gfal2_chmod(context.cContext, cUrl, C.mode_t(mode), &err)
+	ret := C.gfal2_chmod(context.cContext, cURL, C.mode_t(mode), &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
@@ -201,11 +201,11 @@ func (context Context) Rename(oldName string, newName string) GError {
 func (context Context) Stat(url string) (Stat, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
 	var stat StatAndName
-	ret := C.gfal2_stat(context.cContext, cUrl, &stat.stat, &err)
+	ret := C.gfal2_stat(context.cContext, cURL, &stat.stat, &err)
 	if ret < 0 {
 		return nil, errorCtoGo(err)
 	}
@@ -215,32 +215,32 @@ func (context Context) Stat(url string) (Stat, GError) {
 	return stat, nil
 }
 
-// Stat a file, but if url is a symlink, stat it rather than the target.
+// Lstat stats a file, but if url is a symlink, stat it rather than the target.
 func (context Context) Lstat(url string) (Stat, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
 	var stat StatAndName
-	ret := C.gfal2_lstat(context.cContext, cUrl, &stat.stat, &err)
+	ret := C.gfal2_lstat(context.cContext, cURL, &stat.stat, &err)
 	if ret < 0 {
 		return nil, errorCtoGo(err)
 	}
-	
+
 	stat.name = path.Base(url)
 
 	return stat, nil
 }
 
-// Create a directory. Do not create intermediate parents.
+// Mkdir creates a directory. Do not create intermediate parents.
 func (context Context) Mkdir(url string, mode os.FileMode) GError {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
-	ret := C.gfal2_mkdir(context.cContext, cUrl, C.mode_t(mode), &err)
+	ret := C.gfal2_mkdir(context.cContext, cURL, C.mode_t(mode), &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
@@ -248,14 +248,14 @@ func (context Context) Mkdir(url string, mode os.FileMode) GError {
 	return nil
 }
 
-// Create a directory and intermediate parents if required.
+// MkdirAll creates a directory and intermediate parents if required.
 func (context Context) MkdirAll(url string, mode os.FileMode) GError {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
-	ret := C.gfal2_mkdir_rec(context.cContext, cUrl, C.mode_t(mode), &err)
+	ret := C.gfal2_mkdir_rec(context.cContext, cURL, C.mode_t(mode), &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
@@ -263,22 +263,22 @@ func (context Context) MkdirAll(url string, mode os.FileMode) GError {
 	return nil
 }
 
-// Remove the file or directory.
+// Remove deletes a file or directory.
 func (context Context) Remove(url string) GError {
 	info, gerr := context.Stat(url)
 	if gerr != nil {
 		return gerr
 	}
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
 	var err *C.GError
 	var ret C.int
 	if info.IsDir() {
-		ret = C.gfal2_rmdir(context.cContext, cUrl, &err)
+		ret = C.gfal2_rmdir(context.cContext, cURL, &err)
 	} else {
-		ret = C.gfal2_unlink(context.cContext, cUrl, &err)
+		ret = C.gfal2_unlink(context.cContext, cURL, &err)
 	}
 
 	if ret < 0 {
@@ -287,7 +287,7 @@ func (context Context) Remove(url string) GError {
 	return nil
 }
 
-// Create a symlink.
+// Symlink creates a symlink.
 func (context Context) Symlink(source string, target string) GError {
 	var err *C.GError
 
@@ -304,17 +304,17 @@ func (context Context) Symlink(source string, target string) GError {
 	return nil
 }
 
-// Get the target of a symbolic link.
+// Readlink returns the target of a symbolic link.
 func (context Context) Readlink(url string) (string, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
 	buffer := make([]byte, 256)
 	bufferPtr := (*C.char)(unsafe.Pointer(&buffer[0]))
 
-	ret := C.gfal2_readlink(context.cContext, cUrl, bufferPtr, C.size_t(len(buffer)), &err)
+	ret := C.gfal2_readlink(context.cContext, cURL, bufferPtr, C.size_t(len(buffer)), &err)
 	if ret < 0 {
 		return "", errorCtoGo(err)
 	}
@@ -323,17 +323,17 @@ func (context Context) Readlink(url string) (string, GError) {
 	return string(buffer[:n]), nil
 }
 
-// Get the list of extended attributes of a file.
+// Listxattr returns the list of extended attributes of a file.
 func (context Context) Listxattr(url string) ([]string, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
 	buffer := make([]byte, 1024)
 	bufferPtr := (*C.char)(unsafe.Pointer(&buffer[0]))
 
-	ret := C.gfal2_listxattr(context.cContext, cUrl, bufferPtr, C.size_t(len(buffer)), &err)
+	ret := C.gfal2_listxattr(context.cContext, cURL, bufferPtr, C.size_t(len(buffer)), &err)
 	if ret < 0 {
 		return nil, errorCtoGo(err)
 	}
@@ -343,19 +343,19 @@ func (context Context) Listxattr(url string) ([]string, GError) {
 	return strings.Split(allXattr, "\x00"), nil
 }
 
-// Get an extended attribute of a file.
+// Getxattr returns an extended attribute of a file.
 func (context Context) Getxattr(url string, name string) (string, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 	cName := (*C.char)(C.CString(name))
 	defer C.free(unsafe.Pointer(cName))
 
 	buffer := make([]byte, 1024)
 	bufferPtr := (*C.void)(unsafe.Pointer(&buffer[0]))
 
-	ret := C.gfal2_getxattr(context.cContext, cUrl, cName, unsafe.Pointer(bufferPtr), C.size_t(len(buffer)), &err)
+	ret := C.gfal2_getxattr(context.cContext, cURL, cName, unsafe.Pointer(bufferPtr), C.size_t(len(buffer)), &err)
 	if ret < 0 {
 		return "", errorCtoGo(err)
 	}
@@ -364,20 +364,20 @@ func (context Context) Getxattr(url string, name string) (string, GError) {
 	return string(buffer[:n]), nil
 }
 
-// Set an extended attribute of a file.
+// Setxattr sets an extended attribute of a file.
 // If flags is 1 (create), fail if the attribute already exists. If 2 (replace), fail if the attribute does not exist.
 // If 0, the attribute will be set either way.
 func (context Context) Setxattr(url string, name string, value string, flags int) GError {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 	cName := (*C.char)(C.CString(name))
 	defer C.free(unsafe.Pointer(cName))
 	cValue := (*C.char)(C.CString(value))
 	defer C.free(unsafe.Pointer(cValue))
 
-	ret := C.gfal2_setxattr(context.cContext, cUrl, cName, unsafe.Pointer(cValue), C.size_t(len(value)), C.int(flags), &err)
+	ret := C.gfal2_setxattr(context.cContext, cURL, cName, unsafe.Pointer(cValue), C.size_t(len(value)), C.int(flags), &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}

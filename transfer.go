@@ -42,7 +42,7 @@ const (
 	ChecksumBoth   = (ChecksumSource | ChecksumTarget)
 )
 
-// Data passed to the event listener.
+// Event stores the data passed to the event listener.
 type Event struct {
 	Side        int
 	Timestamp   uint64
@@ -51,12 +51,13 @@ type Event struct {
 	Description string
 }
 
-// Event listener interface.
+// EventListener must be implemented by callbacks that want to be notified by
+// events triggered inside gfal2.
 type EventListener interface {
 	NotifyEvent(event Event)
 }
 
-// Data passed to the monitor listener.
+// Marker stores the data passed to the monitor listener.
 type Marker struct {
 	AvgThroughput     uint64
 	InstantThroughput uint64
@@ -64,12 +65,13 @@ type Marker struct {
 	ElapsedTime       uint64
 }
 
-// Monitor listener interface.
+// MonitorListener must be implemented by callbacks that want to be notified by the
+// transfer progress.
 type MonitorListener interface {
 	NotifyPerformanceMarker(marker Marker)
 }
 
-// Struct that holds the data required to run the transfers.
+// TransferHandler holds the data required to run the transfers.
 type TransferHandler struct {
 	cParams  C.gfalt_params_t
 	cContext C.gfal2_context_t
@@ -79,7 +81,7 @@ type TransferHandler struct {
 var monitorListeners []MonitorListener
 var eventListeners []EventListener
 
-// Create a new TransferParameters struct.
+// NewTransferHandler creates a new TransferParameters struct.
 func (context Context) NewTransferHandler() (*TransferHandler, GError) {
 	var params TransferHandler
 	var err *C.GError
@@ -107,7 +109,7 @@ func (params TransferHandler) Copy() (*TransferHandler, GError) {
 	return &paramsCopy, nil
 }
 
-// Destroy the TransferParameters.
+// Close destroys the TransferParameters.
 func (params TransferHandler) Close() GError {
 	var err *C.GError
 
@@ -118,7 +120,7 @@ func (params TransferHandler) Close() GError {
 	return nil
 }
 
-// Define the maximum time acceptable for the file tranfer.
+// SetTimeout sets the maximum time acceptable for the file transfer.
 func (params TransferHandler) SetTimeout(timeout int) GError {
 	var err *C.GError
 
@@ -129,7 +131,7 @@ func (params TransferHandler) SetTimeout(timeout int) GError {
 	return nil
 }
 
-// Get the maximum time acceptable for the file transfer.
+// GetTimeout returns the maximum time acceptable for the file transfer.
 func (params TransferHandler) GetTimeout() int {
 	var err *C.GError
 
@@ -140,7 +142,7 @@ func (params TransferHandler) GetTimeout() int {
 	return int(ret)
 }
 
-// Define the maximum number of parallels connexion to use for the file tranfer.
+// SetNoStreams sets the maximum number of parallels connexion to use for the file transfer.
 // Note that not all protocols implement this.
 func (params TransferHandler) SetNoStreams(nostreams int) GError {
 	var err *C.GError
@@ -152,7 +154,7 @@ func (params TransferHandler) SetNoStreams(nostreams int) GError {
 	return nil
 }
 
-// Get the number of streams to be used for the transfer.
+// GetNoStreams returns the configured number of streams to be used for the transfer.
 func (params TransferHandler) GetNoStreams() int {
 	var err *C.GError
 
@@ -163,9 +165,9 @@ func (params TransferHandler) GetNoStreams() int {
 	return int(ret)
 }
 
-// Set the TCP buffer size.
+// SetTCPBuffersize sets the TCP buffer size. 0 for system default.
 // Note that not all protocols implement this.
-func (params TransferHandler) SetTcpBuffersize(size int) GError {
+func (params TransferHandler) SetTCPBuffersize(size int) GError {
 	var err *C.GError
 
 	ret := C.gfalt_set_tcp_buffer_size(params.cParams, C.guint64(size), &err)
@@ -175,8 +177,8 @@ func (params TransferHandler) SetTcpBuffersize(size int) GError {
 	return nil
 }
 
-// Get the TCP buffer size.
-func (params TransferHandler) GetTcpBuffersize() int {
+// GetTCPBuffersize returns the configured TCP buffer size.
+func (params TransferHandler) GetTCPBuffersize() int {
 	var err *C.GError
 
 	ret := C.gfalt_get_tcp_buffer_size(params.cParams, &err)
@@ -186,7 +188,7 @@ func (params TransferHandler) GetTcpBuffersize() int {
 	return int(ret)
 }
 
-// Set source space token.
+// SetSourceSpacetoken sets source space token.
 // Note that not all protocols implement this.
 func (params TransferHandler) SetSourceSpacetoken(token string) GError {
 	var err *C.GError
@@ -201,7 +203,7 @@ func (params TransferHandler) SetSourceSpacetoken(token string) GError {
 	return nil
 }
 
-// Get the source space token.
+// GetSourceSpaceToken returns the source space token.
 func (params TransferHandler) GetSourceSpaceToken() string {
 	var err *C.GError
 
@@ -212,7 +214,7 @@ func (params TransferHandler) GetSourceSpaceToken() string {
 	return C.GoString((*C.char)(ret))
 }
 
-// Set the destination space token.
+// SetDestinationSpaceToken sets the destination space token.
 // Note that not all protocols implement this.
 func (params TransferHandler) SetDestinationSpaceToken(token string) GError {
 	var err *C.GError
@@ -227,7 +229,7 @@ func (params TransferHandler) SetDestinationSpaceToken(token string) GError {
 	return nil
 }
 
-// Get the destination space token.
+// GetDestinationSpaceToken returns the destination space token.
 func (params TransferHandler) GetDestinationSpaceToken() string {
 	var err *C.GError
 
@@ -238,13 +240,12 @@ func (params TransferHandler) GetDestinationSpaceToken() string {
 	return C.GoString((*C.char)(ret))
 }
 
-// If true, if the destination file exists, it will be overwritten.
+// SetOverwrite sets if the destination file should be overwritten if it exists.
 // If false, if the destination file exists, the transfer will fail.
-// If the destination file does not exist, there is, obviously, no difference.
 func (params TransferHandler) SetOverwrite(overwrite bool) GError {
 	var err *C.GError
 
-	var cOverwrite C.gboolean = 0
+	var cOverwrite C.gboolean
 	if overwrite {
 		cOverwrite = 1
 	}
@@ -256,7 +257,7 @@ func (params TransferHandler) SetOverwrite(overwrite bool) GError {
 	return nil
 }
 
-// Return the value of the Overwrite flag.
+// GetOverwrite returns the value of the Overwrite flag.
 func (params TransferHandler) GetOverwrite() bool {
 	var err *C.GError
 
@@ -267,12 +268,12 @@ func (params TransferHandler) GetOverwrite() bool {
 	return ret != 0
 }
 
-// If true, only the transfer will be done. Any preparatory work will be skipped.
+// SetStrictCopy sets if the transfer should do additional validation steps(true) or not.
 // For instance, parent directory creation, checking the destination exists, checksum/size validation...
 func (params TransferHandler) SetStrictCopy(strict bool) GError {
 	var err *C.GError
 
-	var cStrict C.gboolean = 0
+	var cStrict C.gboolean
 	if strict {
 		cStrict = 1
 	}
@@ -284,7 +285,7 @@ func (params TransferHandler) SetStrictCopy(strict bool) GError {
 	return nil
 }
 
-// Return the value of the StrictCopy flag.
+// GetStrictCopy returns the value of the StrictCopy flag.
 func (params TransferHandler) GetStrictCopy() bool {
 	var err *C.GError
 
@@ -295,7 +296,7 @@ func (params TransferHandler) GetStrictCopy() bool {
 	return ret != 0
 }
 
-// Return the value of the Checksum flag.
+// GetChecksumMode returns the checksum mode to be used.
 func (params TransferHandler) GetChecksumMode() (int, GError) {
 	var err *C.GError
 
@@ -306,7 +307,7 @@ func (params TransferHandler) GetChecksumMode() (int, GError) {
 	return int(ret), nil
 }
 
-// Set a custom checksum type and value. If chkvalue is *not* empty, the source file will
+// SetChecksum sets a custom checksum type and value. If chkvalue is *not* empty, the source file will
 // be validated prior to the transfer.
 func (params TransferHandler) SetChecksum(mode int, chktype string, chkvalue string) GError {
 	var err *C.GError
@@ -323,7 +324,7 @@ func (params TransferHandler) SetChecksum(mode int, chktype string, chkvalue str
 	return nil
 }
 
-// Get the configured checksum type and value.
+// GetChecksum returns the configured checksum type and value.
 func (params TransferHandler) GetChecksum() (int, string, string) {
 	var err *C.GError
 
@@ -343,12 +344,11 @@ func (params TransferHandler) GetChecksum() (int, string, string) {
 	return int(mode), string(typeBuffer[:nType]), string(valueBuffer[:nValue])
 }
 
-// If true, the destination parent directory will be created if it does not exist.
-// If false, the transfer will fail if the destination parent directory does not exist.
+// SetCreateParentDir sets if the parent directory should be created or not if it doesn't exist.
 func (params TransferHandler) SetCreateParentDir(create bool) GError {
 	var err *C.GError
 
-	var cCreate C.gboolean = 0
+	var cCreate C.gboolean
 	if create {
 		cCreate = 1
 	}
@@ -360,7 +360,7 @@ func (params TransferHandler) SetCreateParentDir(create bool) GError {
 	return nil
 }
 
-// Get the value of the CreateParentDir flag.
+// GetCreateParentDir returns the value of the CreateParentDir flag.
 func (params TransferHandler) GetCreateParentDir() bool {
 	var err *C.GError
 
@@ -373,10 +373,10 @@ func (params TransferHandler) GetCreateParentDir() bool {
 
 // Wrapper for callbacks
 //export monitorCallbackWrapper
-func monitorCallbackWrapper(h C.gfalt_transfer_status_t, src *C.char, dst *C.char, user_data C.gpointer) {
+func monitorCallbackWrapper(h C.gfalt_transfer_status_t, src *C.char, dst *C.char, userData C.gpointer) {
 	var err *C.GError
 
-	listener := uintptr(user_data)
+	listener := uintptr(userData)
 
 	var marker Marker
 	marker.AvgThroughput = uint64(C.gfalt_copy_get_average_baudrate(h, &err))
@@ -391,7 +391,7 @@ func monitorCallbackWrapper(h C.gfalt_transfer_status_t, src *C.char, dst *C.cha
 	monitorListeners[listener].NotifyPerformanceMarker(marker)
 }
 
-// Add a function to be called with the performance markers data.
+// AddMonitorCallback adds a function to be called with the performance markers data.
 func (params TransferHandler) AddMonitorCallback(listener MonitorListener) GError {
 	var err *C.GError
 
@@ -413,8 +413,8 @@ func (params TransferHandler) AddMonitorCallback(listener MonitorListener) GErro
 
 // Wrapper for callbacks
 //export eventCallbackWrapper
-func eventCallbackWrapper(cEvent C.gfalt_event_t, user_data C.gpointer) {
-	listener := uintptr(user_data)
+func eventCallbackWrapper(cEvent C.gfalt_event_t, userData C.gpointer) {
+	listener := uintptr(userData)
 
 	var event Event
 	event.Description = C.GoString(cEvent.description)
@@ -426,7 +426,7 @@ func eventCallbackWrapper(cEvent C.gfalt_event_t, user_data C.gpointer) {
 	eventListeners[listener].NotifyEvent(event)
 }
 
-// Add a function to be called when there are events triggered by the plugins.
+// AddEventCallback adds a function to be called when there are events triggered by the plugins.
 func (params TransferHandler) AddEventCallback(listener EventListener) GError {
 	var err *C.GError
 
@@ -446,7 +446,7 @@ func (params TransferHandler) AddEventCallback(listener EventListener) GError {
 	return nil
 }
 
-// Perform the copy from source into destination.
+// CopyFile copies the source file into destination.
 // If the protocol supports it, it will be a third party copy.
 // If the protocol does not support third party copies, then the data will be streamed via the local node.
 func (params TransferHandler) CopyFile(source string, destination string) GError {

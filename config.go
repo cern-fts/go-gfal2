@@ -23,7 +23,7 @@ import (
 	"unsafe"
 )
 
-// Set a string parameter under group:key.
+// SetOptString sets a string parameter under group:key.
 func (context Context) SetOptString(group string, key string, value string) GError {
 	var err *C.GError
 
@@ -42,7 +42,7 @@ func (context Context) SetOptString(group string, key string, value string) GErr
 	return nil
 }
 
-// Get the value of group:key as a string.
+// GetOptString gets the value of group:key as a string.
 func (context Context) GetOptString(group string, key string) string {
 	var err *C.GError
 
@@ -61,7 +61,7 @@ func (context Context) GetOptString(group string, key string) string {
 	return value
 }
 
-// Set an integer parameter under group:key.
+// SetOptInteger sets an integer parameter under group:key.
 func (context Context) SetOptInteger(group string, key string, value int) GError {
 	var err *C.GError
 
@@ -78,7 +78,7 @@ func (context Context) SetOptInteger(group string, key string, value int) GError
 	return nil
 }
 
-// Get the value of group:key as an integer.
+// GetOptInteger gets the value of group:key as an integer.
 func (context Context) GetOptInteger(group string, key string) int {
 	var err *C.GError
 
@@ -95,7 +95,7 @@ func (context Context) GetOptInteger(group string, key string) int {
 	return int(ret)
 }
 
-// Set a boolean parameter under group:key.
+// SetOptBoolean sets a boolean parameter under group:key.
 func (context Context) SetOptBoolean(group string, key string, value bool) GError {
 	var err *C.GError
 
@@ -104,7 +104,7 @@ func (context Context) SetOptBoolean(group string, key string, value bool) GErro
 	cKey := (*C.gchar)(C.CString(key))
 	defer C.free(unsafe.Pointer(cKey))
 
-	var cValue C.gboolean = 0
+	var cValue C.gboolean
 	if value {
 		cValue = 1
 	}
@@ -117,7 +117,7 @@ func (context Context) SetOptBoolean(group string, key string, value bool) GErro
 	return nil
 }
 
-// Get the value of group:key as a boolean.
+// GetOptBoolean gets the value of group:key as a boolean.
 func (context Context) GetOptBoolean(group string, key string) bool {
 	var err *C.GError
 
@@ -134,7 +134,7 @@ func (context Context) GetOptBoolean(group string, key string) bool {
 	return ret != 0
 }
 
-// Set a string list parameter under group:key.
+// SetOptStringList sets a string list parameter under group:key.
 func (context Context) SetOptStringList(group string, key string, values []string) GError {
 	var err *C.GError
 
@@ -159,7 +159,7 @@ func (context Context) SetOptStringList(group string, key string, values []strin
 	return nil
 }
 
-// Get the value of group:key as a string list.
+// GetOptStringList gets the value of group:key as a string list.
 func (context Context) GetOptStringList(group string, key string) []string {
 	var err *C.GError
 
@@ -186,7 +186,8 @@ func (context Context) GetOptStringList(group string, key string) []string {
 	return array
 }
 
-// Load configuration from a file.
+// LoadOptsFromFile loads configuration parameters from a file.
+// It overwrites existing conflicting values, but keeps those that aren't superseded.
 func (context Context) LoadOptsFromFile(path string) GError {
 	var err *C.GError
 
@@ -201,7 +202,7 @@ func (context Context) LoadOptsFromFile(path string) GError {
 	return nil
 }
 
-// Set the user agent. Not all protocols implement this.
+// SetUserAgent sets the user agent. Not all protocols implement this.
 func (context Context) SetUserAgent(agent string, version string) GError {
 	var err *C.GError
 
@@ -218,7 +219,7 @@ func (context Context) SetUserAgent(agent string, version string) GError {
 	return nil
 }
 
-// Get the configured user agent.
+// GetUserAgent returns the configured user agent.
 func (context Context) GetUserAgent() (agent string, version string) {
 	var cAgent *C.char
 	var cVersion *C.char
@@ -237,7 +238,7 @@ func (context Context) GetUserAgent() (agent string, version string) {
 	return
 }
 
-// Add additional client info to be sent to the remote server.
+// AddClientInfo adds additional client info to be sent to the remote server.
 // For instance, using HTTP this will be sent as part of the headers.
 func (context Context) AddClientInfo(key string, value string) GError {
 	var err *C.GError
@@ -255,7 +256,7 @@ func (context Context) AddClientInfo(key string, value string) GError {
 	return nil
 }
 
-// Remove additional client info that was previously set with AddClientInfo.
+// RemoveClientInfo removes additional client info that was previously set with AddClientInfo.
 func (context Context) RemoveClientInfo(key string) GError {
 	var err *C.GError
 
@@ -270,7 +271,7 @@ func (context Context) RemoveClientInfo(key string) GError {
 	return nil
 }
 
-// Clear the additional client info.
+// ClearClientInfo clears the additional client info.
 func (context Context) ClearClientInfo() GError {
 	var err *C.GError
 
@@ -281,7 +282,7 @@ func (context Context) ClearClientInfo() GError {
 	return nil
 }
 
-// Get the additional client info as key1:value1;key2:value2;...
+// GetClientInfoString returns the additional client info as key1:value1;key2:value2;...
 func (context Context) GetClientInfoString() (repr string) {
 	ret := C.gfal2_get_client_info_string(context.cContext)
 	if ret != nil {

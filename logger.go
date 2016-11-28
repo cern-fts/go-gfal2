@@ -35,17 +35,17 @@ const (
 	LogLevelDebug    = C.G_LOG_LEVEL_DEBUG
 )
 
-// Interface to be implemented by the handlers.
+// LogListener is the interface to be implemented by the log handlers.
 type LogListener interface {
 	Log(domain string, level int, msg string)
 }
 
-// Set log level.
+// SetLogLevel set the logging level.
 func SetLogLevel(level int) {
 	C.gfal2_log_set_level(C.GLogLevelFlags(level))
 }
 
-// Get log level.
+// GetLogLevel returns the logging level.
 func GetLogLevel() int {
 	return int(C.gfal2_log_get_level())
 }
@@ -56,7 +56,7 @@ func logHandlerWrapper(domain *C.char, level C.GLogLevelFlags, msg *C.char, udat
 	logCallback.Log(C.GoString(domain), int(level), C.GoString(msg))
 }
 
-// Set a callback rather than printing to stdout.
+// SetLogHandler sets a callback rather than printing to stdout.
 func SetLogHandler(handler LogListener) {
 	C.gfal2_log_set_handler(C.GLogFunc(C.logCallback), C.gpointer(unsafe.Pointer(&handler)))
 }

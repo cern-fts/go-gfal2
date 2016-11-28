@@ -25,83 +25,83 @@ import (
 	"unsafe"
 )
 
-// Contains information about a directory entry.
-type Gfal2Dir struct {
+// Dir contains information about a directory entry.
+type Dir struct {
 	cDir     *C.DIR
 	cContext C.gfal2_context_t
 }
 
-// Directory entry.
-type Gfal2DirEntry struct {
+// DirEntry models a directory entry.
+type DirEntry struct {
 	cDirent *C.struct_dirent
 	cStat   C.struct_stat
 }
 
-// File name.
-func (entry Gfal2DirEntry) Name() string {
+// Name returns the file name/
+func (entry DirEntry) Name() string {
 	return C.GoString(&entry.cDirent.d_name[0])
 }
 
-// File size.
-func (entry Gfal2DirEntry) Size() int64 {
+// Size returns the file size.
+func (entry DirEntry) Size() int64 {
 	return int64(entry.cStat.st_size)
 }
 
-// File mode.
-func (entry Gfal2DirEntry) Mode() os.FileMode {
+// Mode returns the permission bits for the file.
+func (entry DirEntry) Mode() os.FileMode {
 	return mapMode(C.mode_t(entry.cStat.st_mode))
 }
 
-// Modification time.
-func (entry Gfal2DirEntry) ModTime() time.Time {
+// ModTime returns the modification time of the file.
+func (entry DirEntry) ModTime() time.Time {
 	return time.Unix(int64(entry.cStat.st_mtim.tv_sec), int64(entry.cStat.st_mtim.tv_nsec))
 }
 
-// Return true if the file is a directory.
-func (entry Gfal2DirEntry) IsDir() bool {
+// IsDir returns true if the file is a directory.
+func (entry DirEntry) IsDir() bool {
 	return entry.Mode().IsDir()
 }
 
-// Internal representation.
-func (entry Gfal2DirEntry) Sys() interface{} {
+// Sys returns the internal representation.
+func (entry DirEntry) Sys() interface{} {
 	return entry
 }
 
-// Number of files in a directory/hard links.
-func (entry Gfal2DirEntry) Nlink() int {
+// Nlink returns the number of hard links, or files in a directory.
+func (entry DirEntry) Nlink() int {
 	return int(entry.cStat.st_nlink)
 }
 
-// Onwer uid.
-func (entry Gfal2DirEntry) Uid() int {
+// Uid returns the owner's user id.
+func (entry DirEntry) Uid() int {
 	return int(entry.cStat.st_uid)
 }
 
-// Group gid.
-func (entry Gfal2DirEntry) Gid() int {
+// Gid returns the group id.
+func (entry DirEntry) Gid() int {
 	return int(entry.cStat.st_gid)
 }
 
-// Access time.
-func (entry Gfal2DirEntry) AccessTime() time.Time {
+// AccessTime returns the access time of the file.
+func (entry DirEntry) AccessTime() time.Time {
 	return time.Unix(int64(entry.cStat.st_atim.tv_sec), int64(entry.cStat.st_atim.tv_nsec))
 }
 
-// Change time.
-func (entry Gfal2DirEntry) ChangeTime() time.Time {
+// ChangeTime returns the modification time of the file.
+func (entry DirEntry) ChangeTime() time.Time {
 	return time.Unix(int64(entry.cStat.st_ctim.tv_sec), int64(entry.cStat.st_ctim.tv_nsec))
 }
 
-// Open a directory.
-func (context Context) Opendir(url string) (*Gfal2Dir, GError) {
+// Opendir opens a directory.
+func (context Context) Opendir(url string) (*Dir, GError) {
 	var err *C.GError
 
-	cUrl := (*C.char)(C.CString(url))
-	defer C.free(unsafe.Pointer(cUrl))
+	cURL := (*C.char)(C.CString(url))
+	defer C.free(unsafe.Pointer(cURL))
 
-	var dir Gfal2Dir
+	var dir Dir
 	dir.cContext = context.cContext
-	dir.cDir = C.gfal2_opendir(context.cContext, cUrl, &err)
+	dir.cDir = C.gfal2_opendir(context.cContext, cURL, &err)
 	if dir.cDir == nil {
 		return nil, errorCtoGo(err)
 	}
@@ -109,11 +109,11 @@ func (context Context) Opendir(url string) (*Gfal2Dir, GError) {
 	return &dir, nil
 }
 
-// Read a single entry from the directory.
+// Readdir reads a single entry from the directory.
 // For the last entry, it returns nil, nil
-func (dir Gfal2Dir) Readdir() (Stat, GError) {
+func (dir Dir) Readdir() (Stat, GError) {
 	var err *C.GError
-	var entry Gfal2DirEntry
+	var entry DirEntry
 
 	entry.cDirent = C.gfal2_readdirpp(dir.cContext, dir.cDir, &entry.cStat, &err)
 	if entry.cDirent == nil && err != nil {
@@ -125,7 +125,7 @@ func (dir Gfal2Dir) Readdir() (Stat, GError) {
 }
 
 // Close the directory and frees the associated memory.
-func (dir Gfal2Dir) Close() GError {
+func (dir Dir) Close() GError {
 	var err *C.GError
 	ret := C.gfal2_closedir(dir.cContext, dir.cDir, &err)
 	if ret < 0 {
