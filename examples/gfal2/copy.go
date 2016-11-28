@@ -47,9 +47,8 @@ func runCopy(context *gfal2.Context, cmd *Command, args []string) int {
 
 	copyHandler.SetOverwrite(*overwriteFlag)
 	copyHandler.SetCreateParentDir(*createParentFlag)
-	copyHandler.EnableChecksum(*checksumFlag)
 	if *checksumFlag {
-		copyHandler.SetChecksum(*checksumType, *checksumValue)
+		copyHandler.SetChecksum(gfal2.ChecksumBoth, *checksumType, *checksumValue)
 	}
 
 	var listener CopyListener

@@ -34,6 +34,14 @@ const (
 	EventNone        = 2
 )
 
+// Checksum type constants
+const (
+	ChecksumNone   = 0x00
+	ChecksumSource = 0x01
+	ChecksumTarget = 0x02
+	ChecksumBoth   = (ChecksumSource | ChecksumTarget)
+)
+
 // Data passed to the event listener.
 type Event struct {
 	Side        int
@@ -287,38 +295,20 @@ func (params TransferHandler) GetStrictCopy() bool {
 	return ret != 0
 }
 
-// If true, a checksum validation will be done after the transfer.
-// If SetChecksum is used, then the source will be validated against that
-// value before the transfer takes places.
-func (params TransferHandler) EnableChecksum(enable bool) GError {
-	var err *C.GError
-
-	var cEnable C.gboolean = 0
-	if enable {
-		cEnable = 1
-	}
-
-	ret := C.gfalt_set_checksum_check(params.cParams, cEnable, &err)
-	if ret < 0 {
-		return errorCtoGo(err)
-	}
-	return nil
-}
-
 // Return the value of the Checksum flag.
-func (params TransferHandler) IsChecksumEnabled() (bool, GError) {
+func (params TransferHandler) GetChecksumMode() (int, GError) {
 	var err *C.GError
 
-	ret := C.gfalt_get_checksum_check(params.cParams, &err)
+	ret := C.gfalt_get_checksum_mode(params.cParams, &err)
 	if err != nil {
-		return false, errorCtoGo(err)
+		return -1, errorCtoGo(err)
 	}
-	return ret != 0, nil
+	return int(ret), nil
 }
 
 // Set a custom checksum type and value. If chkvalue is *not* empty, the source file will
 // be validated prior to the transfer.
-func (params TransferHandler) SetChecksum(chktype string, chkvalue string) GError {
+func (params TransferHandler) SetChecksum(mode int, chktype string, chkvalue string) GError {
 	var err *C.GError
 
 	cType := (*C.gchar)(C.CString(chktype))
@@ -326,7 +316,7 @@ func (params TransferHandler) SetChecksum(chktype string, chkvalue string) GErro
 	cValue := (*C.gchar)(C.CString(chkvalue))
 	defer C.free(unsafe.Pointer(cValue))
 
-	ret := C.gfalt_set_user_defined_checksum(params.cParams, cType, cValue, &err)
+	ret := C.gfalt_set_checksum(params.cParams, C.gfalt_checksum_mode_t(mode), cType, cValue, &err)
 	if ret < 0 {
 		return errorCtoGo(err)
 	}
@@ -334,7 +324,7 @@ func (params TransferHandler) SetChecksum(chktype string, chkvalue string) GErro
 }
 
 // Get the configured checksum type and value.
-func (params TransferHandler) GetChecksum() (string, string) {
+func (params TransferHandler) GetChecksum() (int, string, string) {
 	var err *C.GError
 
 	typeBuffer := make([]byte, 256)
@@ -342,15 +332,15 @@ func (params TransferHandler) GetChecksum() (string, string) {
 	valueBuffer := make([]byte, 256)
 	valueBufferPtr := (*C.gchar)(unsafe.Pointer(&valueBuffer[0]))
 
-	ret := C.gfalt_get_user_defined_checksum(params.cParams, typeBufferPtr, C.size_t(len(typeBuffer)), valueBufferPtr, C.size_t(len(valueBuffer)), &err)
-	if ret < 0 {
-		return "", ""
+	mode := C.gfalt_get_checksum(params.cParams, typeBufferPtr, C.size_t(len(typeBuffer)), valueBufferPtr, C.size_t(len(valueBuffer)), &err)
+	if mode < 0 {
+		return -1, "", ""
 	}
 
 	nType := bytes.IndexByte(typeBuffer, 0)
 	nValue := bytes.IndexByte(valueBuffer, 0)
 
-	return string(typeBuffer[:nType]), string(valueBuffer[:nValue])
+	return int(mode), string(typeBuffer[:nType]), string(valueBuffer[:nValue])
 }
 
 // If true, the destination parent directory will be created if it does not exist.
@@ -410,7 +400,7 @@ func (params TransferHandler) AddMonitorCallback(listener MonitorListener) GErro
 	ret := C.gfalt_add_monitor_callback(
 		params.cParams,
 		C.gfalt_monitor_func(C.monitorCallback),
-		uintptr(len(monitorListeners) - 1),
+		uintptr(len(monitorListeners)-1),
 		nil,
 		&err,
 	)
@@ -445,7 +435,7 @@ func (params TransferHandler) AddEventCallback(listener EventListener) GError {
 	ret := C.gfalt_add_event_callback(
 		params.cParams,
 		C.gfalt_event_func(C.eventCallback),
-		uintptr(len(eventListeners) - 1),
+		uintptr(len(eventListeners)-1),
 		nil,
 		&err,
 	)
