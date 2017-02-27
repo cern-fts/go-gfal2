@@ -96,6 +96,10 @@ func (context Context) BringOnlineList(urls []string, pintime int, timeout int, 
 	errs := make([]*C.GError, nItems)
 	cUrls := make([]*C.char, nItems)
 
+    for i := 0; i < nItems; i++ {
+        cUrls[i] = (*C.char)(C.CString(urls[i]))
+    }
+
 	buffer := make([]byte, 256)
 	bufferPtr := (*C.char)(unsafe.Pointer(&buffer[0]))
 
@@ -113,6 +117,7 @@ func (context Context) BringOnlineList(urls []string, pintime int, timeout int, 
 	errors := make([]GError, nItems)
 
 	for i := 0; i < nItems; i++ {
+        C.free(unsafe.Pointer(cUrls[i]))
 		if errs[i] == nil {
 			errors[i] = nil
 		} else {
@@ -130,6 +135,10 @@ func (context Context) BringOnlinePollList(urls []string, token string) []GError
 	errs := make([]*C.GError, nItems)
 	cUrls := make([]*C.char, nItems)
 
+    for i := 0; i < nItems; i++ {
+        cUrls[i] = (*C.char)(C.CString(urls[i]))
+    }
+
 	cToken := (*C.char)(C.CString(token))
 	defer C.free(unsafe.Pointer(cToken))
 
@@ -138,6 +147,7 @@ func (context Context) BringOnlinePollList(urls []string, token string) []GError
 
 	errors := make([]GError, nItems)
 	for i := 0; i < nItems; i++ {
+        C.free(unsafe.Pointer(cUrls[i]))
 		if errs[i] == nil {
 			errors[i] = nil
 		} else {
