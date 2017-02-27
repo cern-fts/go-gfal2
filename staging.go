@@ -21,6 +21,7 @@ package gfal2
 import "C"
 import (
 	"bytes"
+	"syscall"
 	"unsafe"
 )
 
@@ -93,12 +94,12 @@ func (context Context) ReleaseFile(url string, token string) GError {
 func (context Context) BringOnlineList(urls []string, pintime int, timeout int, async bool) (string, []GError) {
 	nItems := len(urls)
 
-	errs := make([]*C.GError, nItems)
+	cErrs := make([]*C.GError, nItems)
 	cUrls := make([]*C.char, nItems)
 
-    for i := 0; i < nItems; i++ {
-        cUrls[i] = (*C.char)(C.CString(urls[i]))
-    }
+	for i := 0; i < nItems; i++ {
+		cUrls[i] = (*C.char)(C.CString(urls[i]))
+	}
 
 	buffer := make([]byte, 256)
 	bufferPtr := (*C.char)(unsafe.Pointer(&buffer[0]))
@@ -108,20 +109,22 @@ func (context Context) BringOnlineList(urls []string, pintime int, timeout int, 
 		cAsync = 1
 	}
 
-	C.gfal2_bring_online_list(context.cContext, C.int(nItems),
+	ret := C.gfal2_bring_online_list(context.cContext, C.int(nItems),
 		(**C.char)(&cUrls[0]), C.time_t(pintime), C.time_t(timeout),
-		bufferPtr, C.size_t(len(buffer)), cAsync, &errs[0])
+		bufferPtr, C.size_t(len(buffer)), cAsync, &cErrs[0])
 
 	n := bytes.IndexByte(buffer, 0)
 	token := string(buffer[:n])
 	errors := make([]GError, nItems)
 
 	for i := 0; i < nItems; i++ {
-        C.free(unsafe.Pointer(cUrls[i]))
-		if errs[i] == nil {
+		C.free(unsafe.Pointer(cUrls[i]))
+		if ret == 0 {
+			errors[i] = &gErrorImpl{code: syscall.EAGAIN}
+		} else if cErrs[i] == nil {
 			errors[i] = nil
 		} else {
-			errors[i] = errorCtoGo(errs[i])
+			errors[i] = errorCtoGo(cErrs[i])
 		}
 	}
 
@@ -132,26 +135,26 @@ func (context Context) BringOnlineList(urls []string, pintime int, timeout int, 
 func (context Context) BringOnlinePollList(urls []string, token string) []GError {
 	nItems := len(urls)
 
-	errs := make([]*C.GError, nItems)
+	cErrs := make([]*C.GError, nItems)
 	cUrls := make([]*C.char, nItems)
 
-    for i := 0; i < nItems; i++ {
-        cUrls[i] = (*C.char)(C.CString(urls[i]))
-    }
+	for i := 0; i < nItems; i++ {
+		cUrls[i] = (*C.char)(C.CString(urls[i]))
+	}
 
 	cToken := (*C.char)(C.CString(token))
 	defer C.free(unsafe.Pointer(cToken))
 
 	C.gfal2_bring_online_poll_list(context.cContext, C.int(nItems),
-		(**C.char)(&cUrls[0]), cToken, &errs[0])
+		(**C.char)(&cUrls[0]), cToken, &cErrs[0])
 
 	errors := make([]GError, nItems)
 	for i := 0; i < nItems; i++ {
-        C.free(unsafe.Pointer(cUrls[i]))
-		if errs[i] == nil {
+		C.free(unsafe.Pointer(cUrls[i]))
+		if cErrs[i] == nil {
 			errors[i] = nil
 		} else {
-			errors[i] = errorCtoGo(errs[i])
+			errors[i] = errorCtoGo(cErrs[i])
 		}
 	}
 
