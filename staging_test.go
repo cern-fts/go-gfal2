@@ -37,32 +37,11 @@ func TestBringOnlineError(t *testing.T) {
 	}
 }
 
-func TestBringOnlineList(t *testing.T) {
-	context := getContext(t)
-	urls := []string{
-		"mock://host/file",
-		"mock://host/file?staging_errno=2",
-	}
-	_, errors := context.BringOnlineList(urls, 100, 100, false)
-	if errors == nil {
-		t.Fatal("Expecting an array of errors")
-	}
-	if errors[0] != nil {
-		t.Error("Was expecting the first to succeed, got ", errors[0])
-	}
-	if errors[1] == nil {
-		t.Fatal("Was expecting the second to fail")
-	}
-	if errors[1].Code() != 2 {
-		t.Error("Was expecting 2, got ", errors[1].Code())
-	}
-}
-
 func TestPollList(t *testing.T) {
 	context := getContext(t)
 	urls := []string{
-		"mock://host/file?staging_time=2",
-		"mock://host/file?staging_time=2&staging_errno=2",
+		"mock://host/file?staging_time=5",
+		"mock://host/file?staging_time=5&staging_errno=2",
 	}
 	token, errors := context.BringOnlineList(urls, 100, 100, true)
 	if errors == nil {
@@ -73,6 +52,15 @@ func TestPollList(t *testing.T) {
 			t.Fatal("Was expecting an EAGAIN, got ", error)
 		}
 	}
+
+	time.Sleep(1 * time.Second)
+	errors = context.BringOnlinePollList(urls, token)
+	for _, error := range errors {
+		if error == nil || error.Code() != syscall.EAGAIN {
+			t.Fatal("Was expecting an EAGAIN, got ", error)
+		}
+	}
+
 	time.Sleep(5 * time.Second)
 	errors = context.BringOnlinePollList(urls, token)
 	if errors == nil {
