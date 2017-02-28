@@ -3,22 +3,22 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gitlab.cern.ch/dmc/go-gfal2"
 	"log"
 	"os"
-	"gitlab.cern.ch/dmc/go-gfal2"
 )
 
 // Based on
 // https://golang.org/src/cmd/go/main.go
 type Command struct {
-	Run			func(context *gfal2.Context, cmd *Command, args []string) int
-	Name 		string
-	Flag 		flag.FlagSet
-	Description	string
+	Run         func(context *gfal2.Context, cmd *Command, args []string) int
+	Name        string
+	Flag        flag.FlagSet
+	Description string
 }
 
 // Command list
-var commands = []*Command {
+var commands = []*Command{
 	cmdCat,
 	cmdCopy,
 	cmdLs,
@@ -26,6 +26,7 @@ var commands = []*Command {
 	cmdStat,
 	cmdSum,
 	cmdVersion,
+	cmdBringOnline,
 }
 
 // Print a flag
@@ -58,15 +59,15 @@ func (cmd *Command) Usage() {
 // Entry point
 func main() {
 	// General options
-	optLogLevel := flag.Int("log-level", 0, "Set the logging level") 
+	optLogLevel := flag.Int("log-level", 0, "Set the logging level")
 	flag.Usage = usage
 	flag.Parse()
-	
+
 	args := flag.Args()
 	if len(args) < 1 {
 		usage()
 	}
-	
+
 	// Logging
 	if *optLogLevel >= 2 {
 		gfal2.SetLogLevel(gfal2.LogLevelDebug)
@@ -75,17 +76,17 @@ func main() {
 	} else {
 		gfal2.SetLogLevel(gfal2.LogLevelWarning)
 	}
-	
+
 	var logger LogListener
 	gfal2.SetLogHandler(logger)
-	
+
 	// Create gfal2 context
 	context, err := gfal2.NewContext()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer context.Close()
-	
+
 	// Run command
 	for _, cmd := range commands {
 		if cmd.Name == args[0] {
@@ -94,7 +95,7 @@ func main() {
 			os.Exit(cmd.Run(context, cmd, cmd.Flag.Args()))
 		}
 	}
-	
+
 	// Unknown!
 	fmt.Fprintf(os.Stderr, "Unknown command: %s\n", args[0])
 	usage()
