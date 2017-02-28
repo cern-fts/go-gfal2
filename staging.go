@@ -168,6 +168,10 @@ func (context Context) ReleaseFileList(urls []string, token string) []GError {
 	errs := make([]*C.GError, nItems)
 	cUrls := make([]*C.char, nItems)
 
+	for i := 0; i < nItems; i++ {
+		cUrls[i] = (*C.char)(C.CString(urls[i]))
+	}
+
 	cToken := (*C.char)(C.CString(token))
 	defer C.free(unsafe.Pointer(cToken))
 
@@ -176,6 +180,7 @@ func (context Context) ReleaseFileList(urls []string, token string) []GError {
 
 	errors := make([]GError, nItems)
 	for i := 0; i < nItems; i++ {
+		C.free(unsafe.Pointer(cUrls[i]))
 		if errs[i] == nil {
 			errors[i] = nil
 		} else {
@@ -193,6 +198,10 @@ func (context Context) AbortFiles(urls []string, token string) []GError {
 	errs := make([]*C.GError, nItems)
 	cUrls := make([]*C.char, nItems)
 
+	for i := 0; i < nItems; i++ {
+		cUrls[i] = (*C.char)(C.CString(urls[i]))
+	}
+
 	cToken := (*C.char)(C.CString(token))
 	defer C.free(unsafe.Pointer(cToken))
 
@@ -201,6 +210,7 @@ func (context Context) AbortFiles(urls []string, token string) []GError {
 
 	errors := make([]GError, nItems)
 	for i := 0; i < nItems; i++ {
+		C.free(unsafe.Pointer(cUrls[i]))
 		if errs[i] == nil {
 			errors[i] = nil
 		} else {
