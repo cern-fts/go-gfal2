@@ -145,15 +145,13 @@ func (context Context) BringOnlinePollList(urls []string, token string) []GError
 	cToken := (*C.char)(C.CString(token))
 	defer C.free(unsafe.Pointer(cToken))
 
-	ret := C.gfal2_bring_online_poll_list(context.cContext, C.int(nItems),
+	C.gfal2_bring_online_poll_list(context.cContext, C.int(nItems),
 		(**C.char)(&cUrls[0]), cToken, &cErrs[0])
 
 	errors := make([]GError, nItems)
 	for i := 0; i < nItems; i++ {
 		C.free(unsafe.Pointer(cUrls[i]))
-		if ret == 0 {
-			errors[i] = &gErrorImpl{code: syscall.EAGAIN}
-		} else if cErrs[i] == nil {
+		if cErrs[i] == nil {
 			errors[i] = nil
 		} else {
 			errors[i] = errorCtoGo(cErrs[i])
