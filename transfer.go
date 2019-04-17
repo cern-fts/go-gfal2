@@ -400,7 +400,7 @@ func (params TransferHandler) AddMonitorCallback(listener MonitorListener) GErro
 	ret := C.gfalt_add_monitor_callback(
 		params.cParams,
 		C.gfalt_monitor_func(C.monitorCallback),
-		uintptr(len(monitorListeners)-1),
+		C.gpointer(unsafe.Pointer(uintptr(len(monitorListeners)-1))),
 		nil,
 		&err,
 	)
@@ -435,7 +435,7 @@ func (params TransferHandler) AddEventCallback(listener EventListener) GError {
 	ret := C.gfalt_add_event_callback(
 		params.cParams,
 		C.gfalt_event_func(C.eventCallback),
-		uintptr(len(eventListeners)-1),
+		C.gpointer(unsafe.Pointer(uintptr(len(eventListeners)-1))),
 		nil,
 		&err,
 	)
